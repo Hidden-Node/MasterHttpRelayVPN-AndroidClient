@@ -208,18 +208,18 @@ fn with_callback_env<F>(f: F)
 where
     F: FnOnce(&mut JNIEnv, &GlobalRef),
 {
-    let state = match CALLBACKS.lock() {
-        Ok(state) => state,
-        Err(_) => return,
+    let Ok(state) = CALLBACKS.lock() else {
+        return;
     };
-    let Some(vm) = state.vm.as_ref() else { return };
+    let Some(vm) = state.vm.as_ref() else {
+        return;
+    };
     let Some(callback) = state.callback.as_ref() else {
         return;
     };
-
     if let Ok(mut env) = vm.attach_current_thread() {
         f(&mut env, callback);
-    }
+    };
 }
 
 fn state_callback(state: i32, message: Option<&str>) {
