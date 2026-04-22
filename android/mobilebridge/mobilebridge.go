@@ -32,7 +32,7 @@ func StartTun(fd int, proxyAddr string, mtu int) error {
     key := &engine.Key{
         Proxy:  "socks5://" + proxyAddr,
         Device: fmt.Sprintf("fd://%d", fd),
-        MTU:    uint16(mtu),
+        MTU:    mtu,
     }
 
     engine.Insert(key)
