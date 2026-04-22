@@ -26,15 +26,32 @@ cd tun2socks
 if ! command -v gomobile &> /dev/null; then
     echo "Installing gomobile..."
     go install golang.org/x/mobile/cmd/gomobile@latest
-    gomobile init
+fi
+if ! command -v gobind &> /dev/null; then
+    go install golang.org/x/mobile/cmd/gobind@latest
+fi
+
+gomobile init
+
+# gomobile cannot bind a main package. Resolve a bindable package from repo.
+if go list ./... | grep -q '^github.com/xjasonlyu/tun2socks/v2/mobile$'; then
+    BIND_PKG="github.com/xjasonlyu/tun2socks/v2/mobile"
+else
+    BIND_PKG="$(go list -f '{{if ne .Name "main"}}{{.ImportPath}}{{end}}' ./... | sed '/^$/d' | head -n1)"
+fi
+
+if [ -z "${BIND_PKG:-}" ]; then
+    echo "Error: no bindable (non-main) Go package found for tun2socks."
+    echo "Hint: tun2socks upstream may have changed mobile package layout."
+    exit 1
 fi
 
 # Build AAR for Android
-echo "Building tun2socks AAR..."
+echo "Building tun2socks AAR from package: $BIND_PKG"
 gomobile bind -v -target=android -androidapi=21 \
     -ldflags="-s -w" \
     -o "$OUTPUT_DIR/tun2socks.aar" \
-    github.com/xjasonlyu/tun2socks/v2
+    "$BIND_PKG"
 
 echo "tun2socks AAR built successfully!"
 ls -lh "$OUTPUT_DIR/tun2socks.aar"
