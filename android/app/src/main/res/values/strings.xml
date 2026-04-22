@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MasterHttpRelayVPN</string>
+    <string name="notification_channel_name">VPN Service</string>
+    <string name="notification_channel_description">Shows VPN connection status</string>
+    <string name="notification_connecting">Connecting to VPN…</string>
+    <string name="notification_connected">VPN Connected</string>
+    <string name="notification_disconnecting">Disconnecting…</string>
+    <string name="notification_tap_to_open">Tap to open</string>
+    
+    <!-- Home Screen -->
+    <string name="home_title">MasterHttpRelayVPN</string>
+    <string name="home_connect">Connect</string>
+    <string name="home_disconnect">Disconnect</string>
+    <string name="home_status_disconnected">Disconnected</string>
+    <string name="home_status_connecting">Connecting…</string>
+    <string name="home_status_connected">Connected</string>
+    <string name="home_status_disconnecting">Disconnecting…</string>
+    
+    <!-- Config Screen -->
+    <string name="config_title">Configuration</string>
+    <string name="config_script_id">Script ID</string>
+    <string name="config_auth_key">Auth Key</string>
+    <string name="config_google_ip">Google IP</string>
+    <string name="config_front_domain">Front Domain</string>
+    <string name="config_listen_port">HTTP Port</string>
+    <string name="config_socks5_port">SOCKS5 Port</string>
+    <string name="config_log_level">Log Level</string>
+    <string name="config_sni_hosts">SNI Hosts (comma-separated)</string>
+    <string name="config_save">Save Configuration</string>
+    <string name="config_saved">Configuration saved</string>
+    
+    <!-- Logs Screen -->
+    <string name="logs_title">Logs</string>
+    <string name="logs_clear">Clear</string>
+    <string name="logs_empty">No logs yet</string>
+    
+    <!-- Info Screen -->
+    <string name="info_title">About</string>
+    <string name="info_version">Version</string>
+    <string name="info_description">HTTP relay VPN using Google Apps Script for DPI bypass</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_config">Config</string>
+    <string name="nav_logs">Logs</string>
+    <string name="nav_info">Info</string>
+    
+    <!-- Errors -->
+    <string name="error_vpn_permission">VPN permission denied</string>
+    <string name="error_config_invalid">Invalid configuration</string>
+    <string name="error_connection_failed">Connection failed</string>
+</resources>
