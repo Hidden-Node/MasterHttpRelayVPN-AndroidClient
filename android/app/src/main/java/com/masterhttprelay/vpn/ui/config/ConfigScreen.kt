@@ -11,6 +11,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.masterhttprelay.vpn.data.RustConfig
+import androidx.compose.material3.ExperimentalMaterial3Api
 
 @Composable
 fun ConfigScreen(
@@ -116,6 +117,7 @@ fun ConfigScreen(
         
         Spacer(modifier = Modifier.height(8.dp))
         
+        @OptIn(ExperimentalMaterial3Api::class)
         var expanded by remember { mutableStateOf(false) }
         val logLevels = listOf("debug", "info", "warn", "error")
         

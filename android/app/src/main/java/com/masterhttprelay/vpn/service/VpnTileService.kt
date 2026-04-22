@@ -3,10 +3,14 @@ package com.masterhttprelay.vpn.service
 import android.content.Intent
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import androidx.lifecycle.lifecycleScope
 import com.masterhttprelay.vpn.util.VpnStateManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+
+private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
 class VpnTileService : TileService() {
     
@@ -18,7 +22,7 @@ class VpnTileService : TileService() {
     override fun onClick() {
         super.onClick()
         
-        lifecycleScope.launch {
+        serviceScope.launch {
             val currentState = VpnStateManager.state.first()
             
             when (currentState) {
@@ -46,7 +50,7 @@ class VpnTileService : TileService() {
     }
     
     private fun updateTile() {
-        lifecycleScope.launch {
+        serviceScope.launch {
             val currentState = VpnStateManager.state.first()
             
             qsTile?.apply {
