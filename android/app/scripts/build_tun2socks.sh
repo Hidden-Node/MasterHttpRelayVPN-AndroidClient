@@ -25,11 +25,12 @@ go install "golang.org/x/mobile/cmd/gobind@${MOBILE_TOOLS_VERSION}"
 (
   cd "$BRIDGE_DIR"
   GO111MODULE=on go mod download
-  GO111MODULE=on go get "golang.org/x/mobile@${MOBILE_TOOLS_VERSION}"
-  GO111MODULE=on go get "golang.org/x/mobile/bind@${MOBILE_TOOLS_VERSION}"
+  GO111MODULE=on go mod download "golang.org/x/mobile@${MOBILE_TOOLS_VERSION}"
+  GO111MODULE=on go mod download "golang.org/x/mobile/bind@${MOBILE_TOOLS_VERSION}"
 )
 
 export PATH="$(go env GOPATH)/bin:$PATH"
+export GOTOOLCHAIN=local
 GO111MODULE=on gomobile init
 
 mkdir -p "$OUTPUT_DIR"
