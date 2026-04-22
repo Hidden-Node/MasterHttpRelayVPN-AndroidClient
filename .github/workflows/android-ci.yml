@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -21,6 +22,18 @@ jobs:
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry + target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            android/rust-jni-bridge/target
+          key: cargo-android-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'android/rust-jni-bridge/Cargo.toml') }}
+          restore-keys: |
+            cargo-android-${{ runner.os }}-
 
       - name: Install Rust Android targets
         run: |
@@ -36,6 +49,16 @@ jobs:
       - name: Add Go bin to PATH
         run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-android-${{ runner.os }}-${{ hashFiles('android/mobilebridge/go.sum') }}
+          restore-keys: |
+            go-android-${{ runner.os }}-
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
@@ -48,7 +71,10 @@ jobs:
       - name: Export ANDROID_NDK_HOME
         run: echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.3.11579264" >> "$GITHUB_ENV"
 
-      - name: Build Rust core + tun2socks artifacts
+      - name: Ensure scripts are executable
+        run: chmod +x android/build_rust_mobile.sh android/app/scripts/*.sh
+
+      - name: Build JNI bridge + tun2socks artifacts
         run: bash ./android/build_rust_mobile.sh
 
       - name: Build Debug APK
@@ -57,20 +83,17 @@ jobs:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
         run: chmod +x gradlew && ./gradlew :app:assembleDebug --stacktrace
 
-      - name: List APK outputs
-        run: ls -la android/app/build/outputs/apk/debug/
-
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk-splits
           path: android/app/build/outputs/apk/debug/*.apk
 
-      - name: Upload Rust Android binaries
+      - name: Upload JNI bridge libraries
         uses: actions/upload-artifact@v4
         with:
-          name: mhrv-rs-android-binaries
+          name: rust-jni-bridge-libs
           path: |
-            android/app/src/main/assets/arm64-v8a/mhrv-rs
-            android/app/src/main/assets/armeabi-v7a/mhrv-rs
-            android/app/src/main/assets/x86_64/mhrv-rs
+            android/app/src/main/jniLibs/arm64-v8a/librust_jni_bridge.so
+            android/app/src/main/jniLibs/armeabi-v7a/librust_jni_bridge.so
+            android/app/src/main/jniLibs/x86_64/librust_jni_bridge.so

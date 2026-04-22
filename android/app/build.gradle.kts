@@ -9,7 +9,7 @@ plugins {
 android {
     namespace = "com.masterhttprelay.vpn"
     compileSdk = 35
-    
+
     val appVersionName = System.getenv("ANDROID_VERSION_NAME")
         ?.takeIf { it.isNotBlank() }
         ?: "1.0.0"
@@ -40,10 +40,10 @@ android {
             val keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
 
             if (signingEnabled) {
-                if (storeFilePath.isNullOrBlank()) throw org.gradle.api.GradleException("ANDROID_KEYSTORE_PATH is required")
-                if (storePassword.isNullOrBlank()) throw org.gradle.api.GradleException("ANDROID_KEYSTORE_PASSWORD is required")
-                if (keyAlias.isNullOrBlank()) throw org.gradle.api.GradleException("ANDROID_KEY_ALIAS is required")
-                if (keyPassword.isNullOrBlank()) throw org.gradle.api.GradleException("ANDROID_KEY_PASSWORD is required")
+                if (storeFilePath.isNullOrBlank()) throw org.gradle.api.GradleException("ANDROID_KEYSTORE_PATH is required when ANDROID_SIGNING_ENABLED=true")
+                if (storePassword.isNullOrBlank()) throw org.gradle.api.GradleException("ANDROID_KEYSTORE_PASSWORD is required when ANDROID_SIGNING_ENABLED=true")
+                if (keyAlias.isNullOrBlank()) throw org.gradle.api.GradleException("ANDROID_KEY_ALIAS is required when ANDROID_SIGNING_ENABLED=true")
+                if (keyPassword.isNullOrBlank()) throw org.gradle.api.GradleException("ANDROID_KEY_PASSWORD is required when ANDROID_SIGNING_ENABLED=true")
             }
 
             if (!storeFilePath.isNullOrBlank()) storeFile = file(storeFilePath)
@@ -99,76 +99,51 @@ android {
     }
 }
 
-// Task to build Rust binaries for Android
-tasks.register<Exec>("buildRustAndroid") {
+tasks.register<Exec>("buildRustJniBridge") {
     group = "rust"
-    description = "Cross-compile Rust core for Android targets"
-    
-    workingDir = file("${rootProject.projectDir}/..")
-    commandLine = listOf("bash", "${projectDir}/scripts/build_rust.sh")
-    
-    doLast {
-        println("Rust binaries built successfully")
-    }
+    description = "Build JNI bridge shared libraries for Android ABIs"
+    commandLine = listOf("bash", "${projectDir}/scripts/build_rust_bridge.sh")
 }
 
-// Task to build tun2socks
 tasks.register<Exec>("buildTun2Socks") {
     group = "rust"
     description = "Build tun2socks bridge library"
-    
     commandLine = listOf("bash", "${projectDir}/scripts/build_tun2socks.sh")
-    
-    doLast {
-        println("tun2socks built successfully")
-    }
 }
 
-// Hook into preBuild to compile native dependencies
 tasks.named("preBuild") {
-    dependsOn("buildRustAndroid", "buildTun2Socks")
+    dependsOn("buildRustJniBridge", "buildTun2Socks")
 }
 
 dependencies {
-    // tun2socks AAR (built via gomobile)
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar", "*.jar"))))
 
-    // AndroidX Core
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
-    // Compose
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
+
     implementation("androidx.navigation:navigation-compose:2.8.5")
 
-    // Hilt DI
     implementation("com.google.dagger:hilt-android:2.51.1")
     ksp("com.google.dagger:hilt-android-compiler:2.51.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
-    // DataStore (replaces Room)
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+
     implementation("androidx.datastore:datastore-preferences:1.1.1")
-
-    // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-
-    // JSON
     implementation("com.google.code.gson:gson:2.11.0")
 
-    // Testing
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
-    androidTestImplementation(platform("androidx.compose:compose-bom:2024.12.01"))
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

@@ -1,66 +1,51 @@
 package com.masterhttprelay.vpn.service
 
-import android.content.Intent
+import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import com.masterhttprelay.vpn.util.VpnStateManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
+import androidx.annotation.RequiresApi
+import com.masterhttprelay.vpn.R
+import com.masterhttprelay.vpn.util.VpnManager
 
-private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-
+@RequiresApi(Build.VERSION_CODES.N)
 class VpnTileService : TileService() {
-    
+
     override fun onStartListening() {
         super.onStartListening()
         updateTile()
     }
-    
+
     override fun onClick() {
         super.onClick()
-        
-        serviceScope.launch {
-            val currentState = VpnStateManager.state.first()
-            
-            when (currentState) {
-                VpnStateManager.VpnState.DISCONNECTED -> {
-                    // Start VPN
-                    val intent = Intent(this@VpnTileService, RustVpnService::class.java).apply {
-                        action = RustVpnService.ACTION_CONNECT
-                    }
-                    startService(intent)
-                }
-                VpnStateManager.VpnState.CONNECTED -> {
-                    // Stop VPN
-                    val intent = Intent(this@VpnTileService, RustVpnService::class.java).apply {
-                        action = RustVpnService.ACTION_DISCONNECT
-                    }
-                    startService(intent)
-                }
-                else -> {
-                    // Do nothing if connecting/disconnecting
-                }
-            }
-            
-            updateTile()
+        val state = VpnManager.state.value
+        if (state == VpnManager.VpnState.CONNECTED) {
+            VpnManager.disconnect(this)
+        } else if (state == VpnManager.VpnState.DISCONNECTED) {
+            // Can't start VPN from tile without VPN permission
+            // Just update the tile state
         }
+        updateTile()
     }
-    
+
     private fun updateTile() {
-        serviceScope.launch {
-            val currentState = VpnStateManager.state.first()
-            
-            qsTile?.apply {
-                state = when (currentState) {
-                    VpnStateManager.VpnState.CONNECTED -> Tile.STATE_ACTIVE
-                    VpnStateManager.VpnState.DISCONNECTED -> Tile.STATE_INACTIVE
-                    else -> Tile.STATE_UNAVAILABLE
-                }
-                updateTile()
+        val tile = qsTile ?: return
+        when (VpnManager.state.value) {
+            VpnManager.VpnState.CONNECTED -> {
+                tile.state = Tile.STATE_ACTIVE
+                tile.label = getString(R.string.app_name)
+                tile.subtitle = "Connected"
+            }
+            VpnManager.VpnState.CONNECTING -> {
+                tile.state = Tile.STATE_ACTIVE
+                tile.label = getString(R.string.app_name)
+                tile.subtitle = "Connecting..."
+            }
+            else -> {
+                tile.state = Tile.STATE_INACTIVE
+                tile.label = getString(R.string.app_name)
+                tile.subtitle = "Disconnected"
             }
         }
+        tile.updateTile()
     }
 }

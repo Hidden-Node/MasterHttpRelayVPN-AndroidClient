@@ -6,15 +6,11 @@ import android.content.Intent
 import android.util.Log
 
 class BootReceiver : BroadcastReceiver() {
-    
-    companion object {
-        private const val TAG = "BootReceiver"
-    }
-    
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
-            Log.i(TAG, "Boot completed - VPN auto-start not implemented")
-            // TODO: Implement auto-start if user preference is set
+            Log.i("MasterHttpRelayVPN", "Boot completed, auto-connect can be triggered here")
+            // TODO: Check settings if auto-connect on boot is enabled
+            // If so, load selected profile and start VPN service
         }
     }
 }

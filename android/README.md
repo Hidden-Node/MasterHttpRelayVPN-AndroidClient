@@ -4,14 +4,14 @@ Android VPN client using the Rust-based HTTP relay proxy core for DPI bypass via
 
 ## Architecture
 
-This is a complete rewrite of the Android client to use the Rust core (`../Rust/`) instead of the Go-based DNS tunneling approach. The architecture follows a **subprocess + tun2socks bridge** pattern:
+This is a complete rewrite of the Android client to use the Rust core (`../Rust/`) instead of the Go-based DNS tunneling approach. The architecture follows a **JNI bridge + tun2socks** pattern:
 
 ```
 Android VPN (TUN interface)
     ↓
 tun2socks (Go-based bridge)
     ↓
-Rust SOCKS5 proxy (127.0.0.1:8086)
+Rust core (JNI cdylib)
     ↓
 Rust HTTP proxy (127.0.0.1:8085)
     ↓
@@ -22,11 +22,11 @@ Internet
 
 ### Key Components
 
-1. **RustProcessManager**: Manages the `mhrv-rs` subprocess lifecycle
+1. **Rust JNI Bridge**: Exposes start/stop/status callbacks from Rust to Kotlin
 2. **Tun2SocksManager**: Bridges Android VPN TUN interface to Rust SOCKS5 proxy
-3. **RustVpnService**: Android VpnService implementation
-4. **ConfigStore**: DataStore-based configuration persistence (no Room DB)
-5. **VpnStateManager**: Singleton state management for VPN status and logs
+3. **MasterDnsVpnService**: Android VpnService implementation
+4. **Room + DataStore**: Profiles plus global settings
+5. **VpnManager**: Singleton state management for VPN status and logs
 
 ## Critical Constraint
 

@@ -23,6 +23,7 @@ permissions:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
@@ -36,6 +37,18 @@ jobs:
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry + target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            android/rust-jni-bridge/target
+          key: cargo-release-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'android/rust-jni-bridge/Cargo.toml') }}
+          restore-keys: |
+            cargo-release-${{ runner.os }}-
 
       - name: Install Rust Android targets
         run: |
@@ -51,6 +64,16 @@ jobs:
       - name: Add Go bin to PATH
         run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-release-${{ runner.os }}-${{ hashFiles('android/mobilebridge/go.sum') }}
+          restore-keys: |
+            go-release-${{ runner.os }}-
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
@@ -63,6 +86,9 @@ jobs:
       - name: Export ANDROID_NDK_HOME
         run: echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.3.11579264" >> "$GITHUB_ENV"
 
+      - name: Ensure scripts are executable
+        run: chmod +x android/build_rust_mobile.sh android/app/scripts/*.sh
+
       - name: Decode Android signing keystore
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -74,7 +100,7 @@ jobs:
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/release.jks
           ls -la android/release.jks
 
-      - name: Build Rust core + tun2socks artifacts
+      - name: Build JNI bridge + tun2socks artifacts
         run: bash ./android/build_rust_mobile.sh
 
       - name: Derive Android app version from tag
@@ -124,9 +150,9 @@ jobs:
             cp "$apk" "release-artifacts/${APP_NAME}-${VERSION_NAME}-${suffix}-release.apk"
           done
 
-          cp android/app/src/main/assets/arm64-v8a/mhrv-rs release-artifacts/${APP_NAME}-${VERSION_NAME}-arm64-v8a-mhrv-rs
-          cp android/app/src/main/assets/armeabi-v7a/mhrv-rs release-artifacts/${APP_NAME}-${VERSION_NAME}-armeabi-v7a-mhrv-rs
-          cp android/app/src/main/assets/x86_64/mhrv-rs release-artifacts/${APP_NAME}-${VERSION_NAME}-x86_64-mhrv-rs
+          cp android/app/src/main/jniLibs/arm64-v8a/librust_jni_bridge.so release-artifacts/${APP_NAME}-${VERSION_NAME}-arm64-v8a-librust_jni_bridge.so
+          cp android/app/src/main/jniLibs/armeabi-v7a/librust_jni_bridge.so release-artifacts/${APP_NAME}-${VERSION_NAME}-armeabi-v7a-librust_jni_bridge.so
+          cp android/app/src/main/jniLibs/x86_64/librust_jni_bridge.so release-artifacts/${APP_NAME}-${VERSION_NAME}-x86_64-librust_jni_bridge.so
 
           ls -la release-artifacts
 

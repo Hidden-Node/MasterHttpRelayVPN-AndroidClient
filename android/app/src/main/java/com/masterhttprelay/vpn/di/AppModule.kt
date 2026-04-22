@@ -1,7 +1,8 @@
 package com.masterhttprelay.vpn.di
 
 import android.content.Context
-import com.masterhttprelay.vpn.data.ConfigStore
+import com.masterhttprelay.vpn.data.local.AppDatabase
+import com.masterhttprelay.vpn.data.local.ProfileDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -12,10 +13,15 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
-    
+
     @Provides
     @Singleton
-    fun provideConfigStore(@ApplicationContext context: Context): ConfigStore {
-        return ConfigStore(context)
+    fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
+        return AppDatabase.getInstance(context)
+    }
+
+    @Provides
+    fun provideProfileDao(database: AppDatabase): ProfileDao {
+        return database.profileDao()
     }
 }
