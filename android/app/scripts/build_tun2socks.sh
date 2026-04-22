@@ -7,7 +7,8 @@ BRIDGE_DIR="$ANDROID_DIR/mobilebridge"
 OUTPUT_DIR="$ANDROID_DIR/app/libs"
 
 MOBILE_TOOLS_VERSION="${MOBILE_TOOLS_VERSION:-v0.0.0-20260312152759-81488f6aeb60}"
-TUN2SOCKS_MOBILE_TARGETS="${TUN2SOCKS_MOBILE_TARGETS:-android/arm64}"
+TUN2SOCKS_VERSION="${TUN2SOCKS_VERSION:-latest}"
+TUN2SOCKS_MOBILE_TARGETS="${TUN2SOCKS_MOBILE_TARGETS:-android/arm64,android/arm,android/amd64}"
 
 echo "Building tun2socks AAR from local mobile bridge..."
 
@@ -25,13 +26,13 @@ go install "golang.org/x/mobile/cmd/gobind@${MOBILE_TOOLS_VERSION}"
 # Ensure gomobile bind dependencies are available
 (
   cd "$BRIDGE_DIR"
+  GO111MODULE=on go get "github.com/xjasonlyu/tun2socks/v2@${TUN2SOCKS_VERSION}"
   GO111MODULE=on go mod download
   GO111MODULE=on go get "golang.org/x/mobile@${MOBILE_TOOLS_VERSION}"
   GO111MODULE=on go get "golang.org/x/mobile/bind@${MOBILE_TOOLS_VERSION}"
 )
 
 export PATH="$(go env GOPATH)/bin:$PATH"
-export GOTOOLCHAIN=local
 GO111MODULE=on gomobile init
 
 mkdir -p "$OUTPUT_DIR"
