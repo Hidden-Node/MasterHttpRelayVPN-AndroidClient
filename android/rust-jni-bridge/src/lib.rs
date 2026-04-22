@@ -46,7 +46,7 @@ static RUNTIME: Lazy<Arc<RuntimeState>> = Lazy::new(|| Arc::new(RuntimeState::de
 
 #[no_mangle]
 pub extern "system" fn Java_com_masterhttprelay_vpn_bridge_RustBridge_nativeInit(
-    mut env: JNIEnv,
+    env: JNIEnv,
     _class: JClass,
     callback: JObject,
 ) {
@@ -194,7 +194,7 @@ pub extern "system" fn Java_com_masterhttprelay_vpn_bridge_RustBridge_nativeIsRu
 
 #[no_mangle]
 pub extern "system" fn Java_com_masterhttprelay_vpn_bridge_RustBridge_nativeGetVersion(
-    mut env: JNIEnv,
+    env: JNIEnv,
     _class: JClass,
 ) -> jstring {
     let v = env!("CARGO_PKG_VERSION");
@@ -208,20 +208,17 @@ fn with_callback_env<F>(f: F)
 where
     F: FnOnce(&mut JNIEnv, &GlobalRef),
 {
-    let (vm, callback) = {
-        let state = match CALLBACKS.lock() {
-            Ok(state) => state,
-            Err(_) => return,
-        };
-        let Some(vm) = state.vm.clone() else { return };
-        let Some(callback) = state.callback.clone() else {
-            return;
-        };
-        (vm, callback)
+    let state = match CALLBACKS.lock() {
+        Ok(state) => state,
+        Err(_) => return,
+    };
+    let Some(vm) = state.vm.as_ref() else { return };
+    let Some(callback) = state.callback.as_ref() else {
+        return;
     };
 
     if let Ok(mut env) = vm.attach_current_thread() {
-        f(&mut env, &callback);
+        f(&mut env, callback);
     }
 }
 
