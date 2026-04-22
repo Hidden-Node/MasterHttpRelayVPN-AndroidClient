@@ -35,13 +35,17 @@ GO111MODULE=on gomobile init
 mkdir -p "$OUTPUT_DIR"
 
 # Bind local package to a deterministic Java package.
-GO111MODULE=on gomobile bind \
-  -v \
-  -target=android/arm64,android/arm,android/amd64,android/386 \
-  -androidapi=21 \
-  -javapkg=com.masterhttprelay.tun2socks \
-  -o "$OUTPUT_DIR/tun2socks.aar" \
-  ./mobilebridge
+# Important: run inside BRIDGE_DIR so gomobile sees its go.mod as the main module.
+(
+  cd "$BRIDGE_DIR"
+  GO111MODULE=on gomobile bind \
+    -v \
+    -target=android/arm64,android/arm,android/amd64,android/386 \
+    -androidapi=21 \
+    -javapkg=com.masterhttprelay.tun2socks \
+    -o "$OUTPUT_DIR/tun2socks.aar" \
+    .
+)
 
 echo "Built $OUTPUT_DIR/tun2socks.aar"
 ls -lh "$OUTPUT_DIR/tun2socks.aar"
