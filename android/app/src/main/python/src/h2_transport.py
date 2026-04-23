@@ -14,6 +14,8 @@ Performance comparison:
 Requires: pip install h2
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import socket
@@ -438,3 +440,4 @@ class H2Transport:
                 await self._flush()
         except Exception as e:
             log.debug("H2 PING failed: %s", e)
+from __future__ import annotations

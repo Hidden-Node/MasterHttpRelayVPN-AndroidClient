@@ -9,6 +9,8 @@ Usage:
     install_ca("/path/to/ca.crt", cert_name="MasterHttpRelayVPN")
 """
 
+from __future__ import annotations
+
 import glob
 import logging
 import os
