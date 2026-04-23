@@ -7,6 +7,16 @@ plugins {
     id("com.chaquo.python")
 }
 
+python {
+    buildPython("/usr/bin/python3")
+    pip {
+        install("cryptography>=41.0.0")
+        install("h2>=4.1.0")
+        install("brotli>=1.1.0")
+        install("zstandard>=0.22.0")
+    }
+}
+
 android {
     namespace = "com.masterhttprelay.vpn"
     compileSdk = 35
@@ -29,16 +39,6 @@ android {
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
-        }
-    }
-
-    python {
-        buildPython("/usr/bin/python3")
-        pip {
-            install("cryptography>=41.0.0")
-            install("h2>=4.1.0")
-            install("brotli>=1.1.0")
-            install("zstandard>=0.22.0")
         }
     }
 
