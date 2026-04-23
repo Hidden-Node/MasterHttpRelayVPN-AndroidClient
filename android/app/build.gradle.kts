@@ -7,22 +7,6 @@ plugins {
     id("com.chaquo.python")
 }
 
-chaquopy {
-    defaultConfig {
-        python {
-            version = "3.11"
-            // Use pre-built wheels from Chaquopy's PyPI to avoid Rust compilation
-            pip {
-                // Use exact versions with prebuilt wheels to avoid source compilation
-                install("cryptography==43.0.0")  // Latest prebuilt wheel version
-                install("h2==4.1.0")
-                install("brotli==1.1.0")
-                install("zstandard==0.22.0")
-            }
-        }
-    }
-}
-
 android {
     namespace = "com.masterhttprelay.vpn"
     compileSdk = 35
@@ -112,6 +96,18 @@ android {
         }
         jniLibs {
             useLegacyPackaging = true
+        }
+    }
+}
+
+chaquopy {
+    defaultConfig {
+        version = "3.11"
+        pip {
+            install("cryptography==43.0.0")
+            install("h2==4.1.0")
+            install("brotli==1.1.0")
+            install("zstandard==0.22.0")
         }
     }
 }
