@@ -9,11 +9,16 @@ plugins {
 
 chaquopy {
     defaultConfig {
-        pip {
-            install("cryptography>=41.0.0,<44.0.0")
-            install("h2>=4.1.0")
-            install("brotli>=1.1.0")
-            install("zstandard>=0.22.0")
+        python {
+            version = "3.11"
+            // Use pre-built wheels from Chaquopy's PyPI to avoid Rust compilation
+            pip {
+                // Use exact versions with prebuilt wheels to avoid source compilation
+                install("cryptography==43.0.0")  // Latest prebuilt wheel version
+                install("h2==4.1.0")
+                install("brotli==1.1.0")
+                install("zstandard==0.22.0")
+            }
         }
     }
 }
