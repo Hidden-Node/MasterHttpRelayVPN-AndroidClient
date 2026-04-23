@@ -104,10 +104,12 @@ chaquopy {
     defaultConfig {
         version = "3.8"
         pip {
-            install("cryptography==41.0.7")
+            options("--index-url", "https://chaquo.com/pypi-13.1")
+            options("--only-binary", ":all:")
+            install("cryptography")
             install("h2==4.1.0")
-            install("brotli==1.1.0")
-            install("zstandard==0.22.0")
+            install("brotli")
+            install("zstandard")
         }
     }
 }
