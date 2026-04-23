@@ -105,6 +105,7 @@ chaquopy {
         version = "3.8"
         pip {
             options("--index-url", "https://chaquo.com/pypi-13.1")
+            options("--extra-index-url", "https://pypi.org/simple")
             options("--only-binary", ":all:")
             install("cryptography")
             install("h2==4.1.0")
