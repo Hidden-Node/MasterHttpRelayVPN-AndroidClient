@@ -1240,4 +1240,3 @@ class ProxyServer:
 
         writer.write(response)
         await writer.drain()
-from __future__ import annotations
