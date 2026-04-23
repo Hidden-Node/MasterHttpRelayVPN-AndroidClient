@@ -7,7 +7,7 @@ import java.lang.reflect.Method
 class Tun2SocksManager {
     companion object {
         private const val TAG = "Tun2SocksManager"
-        private const val BRIDGE_CLASS = "com.masterhttprelay.tun2socks.Mobilebridge"
+        private const val BRIDGE_CLASS = "com.masterhttprelay.tun2socks.mobilebridge.Mobilebridge"
     }
 
     @Volatile
