@@ -1,22 +1,17 @@
 package com.masterhttprelay.vpn.ui.settings
 
-import android.content.Context
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,9 +19,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -64,8 +57,8 @@ import com.masterhttprelay.vpn.R
 import com.masterhttprelay.vpn.data.local.ProfileEntity
 import com.masterhttprelay.vpn.ui.components.mdv.cards.MdvSectionCard
 import com.masterhttprelay.vpn.ui.components.mdv.cards.MdvSettingFieldCard
-import com.masterhttprelay.vpn.ui.components.mdv.controls.MdvPrimaryActionButton
 import com.masterhttprelay.vpn.ui.components.mdv.controls.MdvBackTopAppBar
+import com.masterhttprelay.vpn.ui.components.mdv.controls.MdvPrimaryActionButton
 import com.masterhttprelay.vpn.ui.components.mdv.controls.MdvTopAppBar
 import com.masterhttprelay.vpn.ui.theme.MdvColor
 import com.masterhttprelay.vpn.ui.theme.MdvSpace
@@ -80,34 +73,30 @@ private data class SettingField(
     val helper: String,
     val type: FieldType = FieldType.TEXT,
     val keyboardType: KeyboardType = KeyboardType.Text,
-    val options: List<String> = emptyList()
+    val options: List<String> = emptyList(),
+    val minLines: Int = 1
 )
 
 private val configFields = listOf(
-    SettingField("Core", "MODE", "MODE", "Rust core mode", type = FieldType.OPTION, options = listOf("apps_script")),
-    SettingField("Core", "SCRIPT_IDS", "SCRIPT_IDS", "Apps Script deployment IDs (comma-separated)"),
-    SettingField("Core", "AUTH_KEY", "AUTH_KEY", "Shared secret used by your Apps Script"),
-    SettingField("Network", "GOOGLE_IP", "GOOGLE_IP", "Google front IP"),
-    SettingField("Network", "FRONT_DOMAIN", "FRONT_DOMAIN", "Front domain used in SNI"),
-    SettingField("Network", "LISTEN_HOST", "LISTEN_HOST", "Local bind host (usually 127.0.0.1)"),
-    SettingField("Network", "LISTEN_PORT", "LISTEN_PORT", "HTTP proxy port", keyboardType = KeyboardType.Number),
-    SettingField("Network", "SOCKS5_PORT", "SOCKS5_PORT", "SOCKS5 proxy port", keyboardType = KeyboardType.Number),
-    SettingField("Network", "VERIFY_SSL", "VERIFY_SSL", "Verify upstream TLS certificates", type = FieldType.BOOL),
-    SettingField("Routing", "HOSTS", "HOSTS", "Direct hosts map as host=target,host2=target2"),
-    SettingField("Routing", "SNI_HOSTS", "SNI_HOSTS", "SNI rotation pool (comma-separated)"),
-    SettingField("Routing", "ENABLE_BATCHING", "ENABLE_BATCHING", "Enable batch relay requests", type = FieldType.BOOL),
-    SettingField("Routing", "UPSTREAM_SOCKS5", "UPSTREAM_SOCKS5", "Optional upstream SOCKS5 (host:port)"),
-    SettingField("Routing", "PARALLEL_RELAY", "PARALLEL_RELAY", "Parallel relay factor", keyboardType = KeyboardType.Number),
-    SettingField(
-        "Logging",
-        "LOG_LEVEL",
-        "LOG_LEVEL",
-        "Rust core log level",
-        type = FieldType.OPTION,
-        options = listOf("debug", "info", "warn", "error")
-    )
+    SettingField("Core", "mode", "mode", "apps_script", type = FieldType.OPTION, options = listOf("apps_script")),
+    SettingField("Core", "script_id", "script_id", "One Script ID per line", minLines = 3),
+    SettingField("Core", "auth_key", "auth_key", "Required", minLines = 1),
+    SettingField("Network", "google_ip", "google_ip", "Default: 216.239.38.120"),
+    SettingField("Network", "front_domain", "front_domain", "Default: www.google.com"),
+    SettingField("Network", "listen_host", "listen_host", "Default: 127.0.0.1"),
+    SettingField("Network", "socks5_enabled", "socks5_enabled", "true/false", type = FieldType.BOOL),
+    SettingField("Network", "listen_port", "listen_port", "Default: 8085", keyboardType = KeyboardType.Number),
+    SettingField("Network", "socks5_port", "socks5_port", "Default: 1080", keyboardType = KeyboardType.Number),
+    SettingField("Network", "log_level", "log_level", "INFO", type = FieldType.OPTION, options = listOf("INFO", "DEBUG", "WARNING", "ERROR")),
+    SettingField("Network", "verify_ssl", "verify_ssl", "true/false", type = FieldType.BOOL),
+    SettingField("Network", "lan_sharing", "lan_sharing", "true/false", type = FieldType.BOOL),
+    SettingField("Routing", "parallel_relay", "parallel_relay", "Default: 1", keyboardType = KeyboardType.Number),
+    SettingField("Routing", "block_hosts", "block_hosts", "One host per line", minLines = 3),
+    SettingField("Routing", "bypass_hosts", "bypass_hosts", "One host per line", minLines = 4),
+    SettingField("Routing", "direct_google_exclude", "direct_google_exclude", "One host per line", minLines = 6),
+    SettingField("Routing", "direct_google_allow", "direct_google_allow", "One host per line", minLines = 2),
+    SettingField("Routing", "hosts", "hosts", "host=ip per line", minLines = 3)
 )
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -129,40 +118,6 @@ fun SettingsScreen(
         }
     }
 
-    var pendingExportContent by remember { mutableStateOf<String?>(null) }
-    val exportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        val content = pendingExportContent ?: return@rememberLauncherForActivityResult
-        if (uri != null) {
-            writeTextToUri(context, uri, content)
-            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.settings_toml_exported_msg)) }
-        }
-        pendingExportContent = null
-    }
-
-    val importTomlLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            val text = readTextFromUri(context, uri)
-            val updated = viewModel.importTomlValues(text, fieldsState.toMap())
-            fieldsState.clear()
-            fieldsState.putAll(updated)
-            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.settings_toml_imported_msg)) }
-        }
-    }
-
-    val importResolversLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        val selected = profile
-        if (uri != null && selected != null) {
-            val text = readTextFromUri(context, uri)
-            viewModel.importResolvers(selected, text)
-            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.settings_resolvers_imported_msg)) }
-        }
-    }
     LaunchedEffect(profile?.id) {
         fieldsState.clear()
         profile?.let { fieldsState.putAll(defaultValuesFor(it)) }
@@ -176,6 +131,10 @@ fun SettingsScreen(
                 if (selected != null) {
                     IconButton(
                         onClick = {
+                            if (fieldsState["script_id"].isNullOrBlank() || fieldsState["auth_key"].isNullOrBlank()) {
+                                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.profile_required_keys_msg)) }
+                                return@IconButton
+                            }
                             viewModel.saveSettings(selected, fieldsState.toMap())
                             scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.settings_saved_msg)) }
                         }
@@ -249,37 +208,7 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = MdvColor.OnSurface
                         )
-                        Spacer(modifier = Modifier.height(MdvSpace.S1))
-                        Row(horizontalArrangement = Arrangement.spacedBy(MdvSpace.S2)) {
-                            MdvPrimaryActionButton(
-                                text = stringResource(R.string.action_import_toml),
-                                onClick = {
-                                    importTomlLauncher.launch(
-                                        arrayOf(
-                                            "application/json",
-                                            "text/plain",
-                                            "application/octet-stream",
-                                            "*/*"
-                                        )
-                                    )
-                                },
-                                icon = Icons.Filled.UploadFile
-                            )
-                            MdvPrimaryActionButton(
-                                text = stringResource(R.string.action_export_toml),
-                                onClick = {
-                                    pendingExportContent = viewModel.exportConfigToml(selected, fieldsState.toMap())
-                                    exportLauncher.launch("${selected.name}_config.json")
-                                },
-                                icon = Icons.Filled.Download
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(MdvSpace.S1))
-                        MdvPrimaryActionButton(
-                            text = stringResource(R.string.action_import_resolvers),
-                            onClick = { importResolversLauncher.launch(arrayOf("text/*")) },
-                            icon = Icons.Filled.UploadFile
-                        )
+                        Spacer(modifier = Modifier.height(MdvSpace.S2))
                     }
 
                     items(sectionOrder, key = { "section_$it" }) { section ->
@@ -307,6 +236,10 @@ fun SettingsScreen(
                         MdvPrimaryActionButton(
                             text = stringResource(R.string.action_save_settings),
                             onClick = {
+                                if (fieldsState["script_id"].isNullOrBlank() || fieldsState["auth_key"].isNullOrBlank()) {
+                                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.profile_required_keys_msg)) }
+                                    return@MdvPrimaryActionButton
+                                }
                                 viewModel.saveSettings(selected, fieldsState.toMap())
                                 scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.settings_saved_msg)) }
                             },
@@ -382,7 +315,7 @@ private fun ConfigFieldCard(
                                 DropdownMenuItem(
                                     text = { Text(option) },
                                     onClick = {
-                                        onChange(option.substringBefore(" - ").trim())
+                                        onChange(option)
                                         expanded = false
                                     }
                                 )
@@ -398,7 +331,8 @@ private fun ConfigFieldCard(
                         label = { Text(field.label) },
                         supportingText = { Text(field.helper) },
                         modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = field.keyboardType)
+                        keyboardOptions = KeyboardOptions(keyboardType = field.keyboardType),
+                        minLines = field.minLines
                     )
                 }
             }
@@ -406,46 +340,37 @@ private fun ConfigFieldCard(
     }
 }
 
-private fun readTextFromUri(context: Context, uri: Uri): String {
-    return runCatching {
-        val stream = context.contentResolver.openInputStream(uri)
-        stream?.bufferedReader()?.use { it.readText() } ?: ""
-    }.getOrDefault("")
-}
-
-private fun writeTextToUri(context: Context, uri: Uri, content: String) {
-    runCatching {
-        context.contentResolver.openOutputStream(uri, "w")?.bufferedWriter()?.use {
-            it.write(content)
-        }
-    }
-}
-
 private fun defaultValuesFor(profile: ProfileEntity): Map<String, String> {
     val advanced = parseAdvanced(profile.advancedJson)
-    fun adv(key: String, fallback: String): String {
-        return advanced[key]?.trim().takeUnless { it.isNullOrEmpty() } ?: fallback
-    }
+    fun adv(key: String, fallback: String): String = advanced[key]?.trim().takeUnless { it.isNullOrEmpty() } ?: fallback
 
     return buildMap {
-        put("MODE", adv("MODE", "apps_script"))
-        put("SCRIPT_IDS", parseDomains(profile.domains).joinToString(", "))
-        put("AUTH_KEY", profile.encryptionKey)
-        put("GOOGLE_IP", adv("GOOGLE_IP", "216.239.38.120"))
-        put("FRONT_DOMAIN", adv("FRONT_DOMAIN", "www.google.com"))
-        put("LISTEN_HOST", adv("LISTEN_HOST", "127.0.0.1"))
-        put("LISTEN_PORT", profile.listenPort.toString())
-        put("SOCKS5_PORT", adv("SOCKS5_PORT", (profile.listenPort + 1).toString()))
-        put("VERIFY_SSL", adv("VERIFY_SSL", "true"))
-        put("HOSTS", adv("HOSTS", ""))
-        put("SNI_HOSTS", adv("SNI_HOSTS", ""))
-        put("ENABLE_BATCHING", adv("ENABLE_BATCHING", "false"))
-        put("UPSTREAM_SOCKS5", adv("UPSTREAM_SOCKS5", ""))
-        put("PARALLEL_RELAY", adv("PARALLEL_RELAY", "0"))
-        put("LOG_LEVEL", profile.logLevel.lowercase())
+        put("mode", adv("mode", "apps_script"))
+        put("script_id", parseDomains(profile.domains).joinToString("\n"))
+        put("auth_key", profile.encryptionKey)
+        put("google_ip", adv("google_ip", "216.239.38.120"))
+        put("front_domain", adv("front_domain", "www.google.com"))
+        put("listen_host", adv("listen_host", "127.0.0.1"))
+        put("socks5_enabled", adv("socks5_enabled", "true"))
+        put("listen_port", profile.listenPort.toString())
+        put("socks5_port", adv("socks5_port", "1080"))
+        put("log_level", profile.logLevel.ifBlank { "INFO" }.uppercase())
+        put("verify_ssl", adv("verify_ssl", "true"))
+        put("lan_sharing", adv("lan_sharing", "true"))
+        put("parallel_relay", adv("parallel_relay", "1"))
+        put("block_hosts", adv("block_hosts", ""))
+        put("bypass_hosts", adv("bypass_hosts", "localhost\n.local\n.lan\n.home.arpa"))
+        put(
+            "direct_google_exclude",
+            adv(
+                "direct_google_exclude",
+                "gemini.google.com\naistudio.google.com\nnotebooklm.google.com\nlabs.google.com\nmeet.google.com\naccounts.google.com\nogs.google.com\nmail.google.com\ncalendar.google.com\ndrive.google.com\ndocs.google.com\nchat.google.com\nmaps.google.com\nplay.google.com\ntranslate.google.com\nassistant.google.com\nlens.google.com"
+            )
+        )
+        put("direct_google_allow", adv("direct_google_allow", "www.google.com\nsafebrowsing.google.com"))
+        put("hosts", adv("hosts", ""))
     }
 }
-
 
 private fun parseAdvanced(json: String): Map<String, String> {
     return try {
@@ -459,8 +384,8 @@ private fun parseAdvanced(json: String): Map<String, String> {
 private fun parseDomains(json: String): List<String> {
     return try {
         val type = object : TypeToken<List<String>>() {}.type
-        Gson().fromJson<List<String>>(json, type) ?: emptyList()
+        Gson().fromJson<List<String>>(json, type)?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
     } catch (_: Exception) {
-        listOf(json.trim().removeSurrounding("\"")).filter { it.isNotBlank() }
+        json.lineSequence().map { it.trim().removeSurrounding("\"") }.filter { it.isNotEmpty() }.toList()
     }
 }

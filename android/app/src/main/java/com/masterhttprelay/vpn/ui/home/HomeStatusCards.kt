@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,17 +31,13 @@ import com.masterhttprelay.vpn.util.VpnManager
 fun MdvConnectionTelemetryCard(
     vpnState: VpnManager.VpnState,
     scanStatus: VpnManager.ScanStatus,
-    scannedCount: Int,
-    totalResolvers: Int,
-    scanProgress: Float,
     downBps: Long,
     upBps: Long,
     proxyHost: String,
     proxyPort: Int,
     socksAuthEnabled: Boolean,
     socksUser: String,
-    socksPass: String,
-    isConnecting: Boolean
+    socksPass: String
 ) {
     MdvCardLow(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth().padding(MdvSpace.S3)) {
@@ -64,18 +59,6 @@ fun MdvConnectionTelemetryCard(
                 color = MdvColor.OnSurface
             )
 
-            if (scanStatus.lastResolver.isNotBlank()) {
-                androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(MdvSpace.S1))
-                Text(
-                    text = stringResource(
-                        R.string.home_resolver_row,
-                        scanStatus.lastResolver,
-                        scanStatus.lastDecision
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MdvColor.OnSurfaceVariant
-                )
-            }
             if (scanStatus.validCount > 0 || scanStatus.rejectedCount > 0) {
                 androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(2.dp))
                 Text(
@@ -92,23 +75,6 @@ fun MdvConnectionTelemetryCard(
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            if (scanStatus.scanning || isConnecting) {
-                androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(MdvSpace.S2))
-                Text(
-                    text = stringResource(R.string.home_dns_scan_progress, scannedCount, totalResolvers),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MdvColor.OnSurfaceVariant
-                )
-                androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(MdvSpace.S1))
-                LinearProgressIndicator(
-                    progress = { scanProgress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp),
-                    color = MdvColor.PrimaryContainer,
-                    trackColor = MdvColor.SurfaceBright
-                )
-            }
             if (scanStatus.syncedUploadMtu > 0 || scanStatus.syncedDownloadMtu > 0) {
                 androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(2.dp))
                 Text(
@@ -119,14 +85,6 @@ fun MdvConnectionTelemetryCard(
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MdvColor.OnSurfaceVariant
-                )
-            }
-            if (scanStatus.activeResolvers > 0) {
-                androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = stringResource(R.string.home_active_resolvers, scanStatus.activeResolvers),
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MdvColor.OnSurface
                 )
             }
             androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(MdvSpace.S1))

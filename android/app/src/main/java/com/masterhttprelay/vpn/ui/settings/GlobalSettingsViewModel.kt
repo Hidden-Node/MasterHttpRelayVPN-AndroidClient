@@ -4,8 +4,13 @@ import android.app.Application
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.content.ContentValues
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.masterhttprelay.vpn.bridge.PythonBridge
 import com.masterhttprelay.vpn.util.GlobalSettings
 import com.masterhttprelay.vpn.util.GlobalSettingsStore
 import kotlinx.coroutines.Dispatchers
@@ -15,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 class GlobalSettingsViewModel(app: Application) : AndroidViewModel(app) {
     data class AppEntry(
@@ -36,6 +42,46 @@ class GlobalSettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun save(settings: GlobalSettings) {
         viewModelScope.launch {
             GlobalSettingsStore.save(getApplication(), settings)
+        }
+    }
+
+    suspend fun exportCaCertToDownloads(): Result<String> = withContext(Dispatchers.IO) {
+        val app = getApplication<Application>()
+        val caPath = PythonBridge.ensureCaCert(app)
+            ?: return@withContext Result.failure(IllegalStateException("Failed to generate CA certificate"))
+        val source = File(caPath)
+        if (!source.exists() || source.length() <= 0L) {
+            return@withContext Result.failure(IllegalStateException("CA certificate not found"))
+        }
+
+        val fileName = "masterhttprelayvpn-ca.crt"
+        return@withContext try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val values = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "application/x-x509-ca-cert")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+                val resolver = app.contentResolver
+                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: return@withContext Result.failure(IllegalStateException("Failed to create Downloads entry"))
+                resolver.openOutputStream(uri, "w")?.use { output ->
+                    source.inputStream().use { input -> input.copyTo(output) }
+                } ?: return@withContext Result.failure(IllegalStateException("Failed to open Downloads output stream"))
+                values.clear()
+                values.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                resolver.update(uri, values, null, null)
+                Result.success("$fileName saved to Downloads")
+            } else {
+                val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                if (!downloads.exists()) downloads.mkdirs()
+                val target = File(downloads, fileName)
+                source.copyTo(target, overwrite = true)
+                Result.success("$fileName saved to ${target.absolutePath}")
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 

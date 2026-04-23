@@ -9,7 +9,6 @@ import com.masterhttprelay.vpn.data.local.ProfileEntity
 object ConfigGenerator {
     private val gson = Gson()
 
-    // Kept for compatibility with existing settings export/import entrypoints.
     fun generateConfig(
         profile: ProfileEntity,
         listenPort: Int,
@@ -19,7 +18,7 @@ object ConfigGenerator {
         localDnsIpOverride: String? = null,
         localDnsPortOverride: Int? = null
     ): String {
-        return generateRustConfig(profile, httpPort = listenPort, socksPort = listenPort + 1, listenHost = listenIpOverride)
+        return generatePythonConfig(profile, listenPort = listenPort, listenHostOverride = listenIpOverride)
     }
 
     fun generateRustConfig(
@@ -28,23 +27,24 @@ object ConfigGenerator {
         socksPort: Int,
         listenHost: String? = null
     ): String {
+        val merged = parseAdvanced(profile.advancedJson).toMutableMap()
+        merged["socks5_port"] = socksPort.toString()
+        val profileWithMerged = profile.copy(advancedJson = gson.toJson(merged))
+        return generatePythonConfig(profileWithMerged, listenPort = httpPort, listenHostOverride = listenHost)
+    }
+
+    fun generatePythonConfig(
+        profile: ProfileEntity,
+        listenPort: Int,
+        listenHostOverride: String? = null
+    ): String {
         val advanced = parseAdvanced(profile.advancedJson)
-        val scriptIds = parseDomains(profile.domains).ifEmpty {
-            advanced["SCRIPT_IDS"]?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
-                ?: advanced["SCRIPT_ID"]?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
-                ?: emptyList()
-        }
+        val scriptIds = parseDomains(profile.domains)
 
         val root = JsonObject().apply {
-            addProperty("mode", advanced["MODE"] ?: "apps_script")
-            addProperty("google_ip", advanced["GOOGLE_IP"] ?: "216.239.38.120")
-            addProperty("front_domain", advanced["FRONT_DOMAIN"] ?: "www.google.com")
-            addProperty("auth_key", profile.encryptionKey)
-            addProperty("listen_host", listenHost ?: advanced["LISTEN_HOST"] ?: "127.0.0.1")
-            addProperty("listen_port", httpPort)
-            addProperty("socks5_port", socksPort)
-            addProperty("log_level", profile.logLevel.lowercase())
-            addProperty("verify_ssl", advanced["VERIFY_SSL"]?.toBooleanStrictOrNull() ?: true)
+            addProperty("mode", advanced["mode"] ?: "apps_script")
+            addProperty("google_ip", advanced["google_ip"] ?: "216.239.38.120")
+            addProperty("front_domain", advanced["front_domain"] ?: "www.google.com")
 
             if (scriptIds.size <= 1) {
                 addProperty("script_id", scriptIds.firstOrNull().orEmpty())
@@ -54,31 +54,54 @@ object ConfigGenerator {
                 add("script_id", arr)
             }
 
-            val hostsObj = JsonObject()
-            parseHosts(advanced["HOSTS"]).forEach { (k, v) -> hostsObj.addProperty(k, v) }
-            add("hosts", hostsObj)
+            addProperty("auth_key", profile.encryptionKey)
+            addProperty("listen_host", listenHostOverride ?: advanced["listen_host"] ?: "127.0.0.1")
+            addProperty("socks5_enabled", (advanced["socks5_enabled"] ?: "true").toBooleanStrictOrNull() ?: true)
+            addProperty("listen_port", listenPort)
+            addProperty("socks5_port", (advanced["socks5_port"] ?: "1080").toIntOrNull() ?: 1080)
+            addProperty("log_level", profile.logLevel.ifBlank { "INFO" }.uppercase())
+            addProperty("verify_ssl", (advanced["verify_ssl"] ?: "true").toBooleanStrictOrNull() ?: true)
+            addProperty("lan_sharing", (advanced["lan_sharing"] ?: "true").toBooleanStrictOrNull() ?: true)
+            addProperty("parallel_relay", (advanced["parallel_relay"] ?: "1").toIntOrNull() ?: 1)
 
-            val sni = advanced["SNI_HOSTS"]
-                ?.split(",")
-                ?.map { it.trim() }
-                ?.filter { it.isNotEmpty() }
-                .orEmpty()
-            if (sni.isNotEmpty()) {
-                val arr = JsonArray()
-                sni.forEach { arr.add(it) }
-                add("sni_hosts", arr)
-            }
-
-            advanced["ENABLE_BATCHING"]?.toBooleanStrictOrNull()?.let { addProperty("enable_batching", it) }
-            advanced["UPSTREAM_SOCKS5"]?.takeIf { it.isNotBlank() }?.let { addProperty("upstream_socks5", it) }
-            advanced["PARALLEL_RELAY"]?.toIntOrNull()?.let { addProperty("parallel_relay", it) }
+            add("block_hosts", parseArrayLines(advanced["block_hosts"]))
+            add(
+                "bypass_hosts",
+                parseArrayLines(advanced["bypass_hosts"], default = listOf("localhost", ".local", ".lan", ".home.arpa"))
+            )
+            add(
+                "direct_google_exclude",
+                parseArrayLines(
+                    advanced["direct_google_exclude"],
+                    default = listOf(
+                        "gemini.google.com",
+                        "aistudio.google.com",
+                        "notebooklm.google.com",
+                        "labs.google.com",
+                        "meet.google.com",
+                        "accounts.google.com",
+                        "ogs.google.com",
+                        "mail.google.com",
+                        "calendar.google.com",
+                        "drive.google.com",
+                        "docs.google.com",
+                        "chat.google.com",
+                        "maps.google.com",
+                        "play.google.com",
+                        "translate.google.com",
+                        "assistant.google.com",
+                        "lens.google.com"
+                    )
+                )
+            )
+            add(
+                "direct_google_allow",
+                parseArrayLines(advanced["direct_google_allow"], default = listOf("www.google.com", "safebrowsing.google.com"))
+            )
+            add("hosts", parseHostsObject(advanced["hosts"]))
         }
 
         return gson.toJson(root)
-    }
-
-    fun generateResolvers(profile: ProfileEntity): String {
-        return profile.resolvers.lines().map { it.trim() }.filter { it.isNotEmpty() }.joinToString("\n")
     }
 
     private fun parseDomains(json: String): List<String> {
@@ -86,7 +109,7 @@ object ConfigGenerator {
             val type = object : TypeToken<List<String>>() {}.type
             gson.fromJson<List<String>>(json, type)?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
         } catch (_: Exception) {
-            json.split(",").map { it.trim().removeSurrounding("\"") }.filter { it.isNotEmpty() }
+            json.lineSequence().map { it.trim().removeSurrounding("\"") }.filter { it.isNotEmpty() }.toList()
         }
     }
 
@@ -99,14 +122,30 @@ object ConfigGenerator {
         }
     }
 
-    private fun parseHosts(raw: String?): Map<String, String> {
-        if (raw.isNullOrBlank()) return emptyMap()
-        return raw.split(",")
-            .mapNotNull { token ->
-                val parts = token.split("=", limit = 2)
-                if (parts.size != 2) null else parts[0].trim() to parts[1].trim()
+    private fun parseArrayLines(raw: String?, default: List<String> = emptyList()): JsonArray {
+        val values = raw
+            ?.lineSequence()
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?.toList()
+            ?.takeIf { it.isNotEmpty() }
+            ?: default
+
+        return JsonArray().apply { values.forEach { add(it) } }
+    }
+
+    private fun parseHostsObject(raw: String?): JsonObject {
+        val obj = JsonObject()
+        raw
+            ?.lineSequence()
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() && it.contains('=') }
+            ?.forEach { line ->
+                val parts = line.split('=', limit = 2)
+                val host = parts[0].trim()
+                val ip = parts[1].trim()
+                if (host.isNotEmpty() && ip.isNotEmpty()) obj.addProperty(host, ip)
             }
-            .filter { it.first.isNotEmpty() && it.second.isNotEmpty() }
-            .toMap()
+        return obj
     }
 }

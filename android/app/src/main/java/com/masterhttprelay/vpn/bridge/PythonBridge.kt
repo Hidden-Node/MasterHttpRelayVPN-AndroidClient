@@ -15,13 +15,7 @@ object PythonBridge {
     fun init(context: Context, callback: VpnCoreCallback) {
         if (initialized) return
 
-        // Start Python
-        if (!Python.isStarted()) {
-            Python.start(AndroidPlatform(context))
-        }
-
-        val py = Python.getInstance()
-        val module = py.getModule("vpn_core")
+        val module = getVpnCoreModule(context)
 
         // Pass the callback directly - Python will call methods on it
         module.callAttr("init", callback)
@@ -29,6 +23,14 @@ object PythonBridge {
         vpnCoreModule = module
         this.callback = callback
         initialized = true
+    }
+
+    private fun getVpnCoreModule(context: Context): PyObject {
+        if (!Python.isStarted()) {
+            Python.start(AndroidPlatform(context))
+        }
+        val py = Python.getInstance()
+        return py.getModule("vpn_core")
     }
 
     fun start(context: Context, configJson: String): Boolean {
@@ -81,5 +83,15 @@ object PythonBridge {
 
     fun getCaCertPath(context: Context): String {
         return File(context.filesDir, "ca/ca.crt").absolutePath
+    }
+
+    fun ensureCaCert(context: Context): String? {
+        return try {
+            val module = getVpnCoreModule(context)
+            val caDir = File(context.filesDir, "ca").absolutePath
+            module.callAttr("ensure_ca", caDir)?.toString()
+        } catch (_: Exception) {
+            null
+        }
     }
 }

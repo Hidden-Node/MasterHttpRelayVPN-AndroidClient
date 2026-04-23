@@ -92,14 +92,6 @@ fun HomeScreen(
     val isConnected = vpnState == VpnManager.VpnState.CONNECTED
     val isConnecting = vpnState == VpnManager.VpnState.CONNECTING
     val isDisconnecting = vpnState == VpnManager.VpnState.DISCONNECTING
-    val totalResolvers = selectedProfile?.resolvers
-        ?.lineSequence()
-        ?.map { it.trim() }
-        ?.count { it.isNotEmpty() }
-        ?.coerceAtLeast(1)
-        ?: 1
-    val scannedCount = (scanStatus.validCount + scanStatus.rejectedCount).coerceAtMost(totalResolvers)
-    val scanProgress = (scannedCount.toFloat() / totalResolvers.toFloat()).coerceIn(0f, 1f)
 
     val statusColor by animateColorAsState(
         targetValue = when (vpnState) {
@@ -224,17 +216,13 @@ fun HomeScreen(
                         MdvConnectionTelemetryCard(
                             vpnState = vpnState,
                             scanStatus = scanStatus,
-                            scannedCount = scannedCount,
-                            totalResolvers = totalResolvers,
-                            scanProgress = scanProgress,
                             downBps = downBps,
                             upBps = upBps,
                             proxyHost = proxyHost,
                             proxyPort = proxyPort,
                             socksAuthEnabled = socksAuthEnabled,
                             socksUser = socksUser,
-                            socksPass = socksPass,
-                            isConnecting = isConnecting
+                            socksPass = socksPass
                         )
                         Spacer(modifier = Modifier.height(MdvSpace.S3))
                         MdvProfileSelectorCard(
@@ -293,17 +281,13 @@ fun HomeScreen(
                 MdvConnectionTelemetryCard(
                     vpnState = vpnState,
                     scanStatus = scanStatus,
-                    scannedCount = scannedCount,
-                    totalResolvers = totalResolvers,
-                    scanProgress = scanProgress,
                     downBps = downBps,
                     upBps = upBps,
                     proxyHost = proxyHost,
                     proxyPort = proxyPort,
                     socksAuthEnabled = socksAuthEnabled,
                     socksUser = socksUser,
-                    socksPass = socksPass,
-                    isConnecting = isConnecting
+                    socksPass = socksPass
                 )
 
                 Spacer(modifier = Modifier.height(MdvSpace.S3))

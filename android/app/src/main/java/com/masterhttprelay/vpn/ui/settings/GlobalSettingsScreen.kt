@@ -340,6 +340,23 @@ fun GlobalSettingsScreen(vm: GlobalSettingsViewModel = viewModel()) {
                     }
                     item {
                         MdvPrimaryActionButton(
+                            text = stringResource(R.string.global_install_ca_button),
+                            onClick = {
+                                scope.launch {
+                                    val result = vm.exportCaCertToDownloads()
+                                    val msg = result.getOrNull()
+                                        ?: context.getString(
+                                            R.string.global_install_ca_failed_msg,
+                                            result.exceptionOrNull()?.localizedMessage ?: "unknown error"
+                                        )
+                                    snackbarHostState.showSnackbar(msg)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    item {
+                        MdvPrimaryActionButton(
                             text = stringResource(R.string.global_settings_save_button),
                             onClick = ::saveGlobalSettings,
                             modifier = Modifier.fillMaxWidth()

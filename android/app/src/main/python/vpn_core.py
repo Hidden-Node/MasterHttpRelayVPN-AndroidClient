@@ -247,3 +247,13 @@ def get_version() -> str:
     """Get VPN core version."""
     core = get_instance()
     return core.get_version()
+
+
+def ensure_ca(ca_dir: str) -> str:
+    """Ensure CA cert/key exist and return ca.crt path."""
+    os.makedirs(ca_dir, exist_ok=True)
+    ca_cert_path = os.path.join(ca_dir, "ca.crt")
+    ca_key_path = os.path.join(ca_dir, "ca.key")
+    if not os.path.exists(ca_cert_path) or not os.path.exists(ca_key_path):
+        generate_ca(ca_cert_path, ca_key_path)
+    return ca_cert_path

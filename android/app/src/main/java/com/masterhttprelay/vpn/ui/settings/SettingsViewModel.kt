@@ -1,13 +1,12 @@
 package com.masterhttprelay.vpn.ui.settings
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.masterhttprelay.vpn.data.local.ProfileEntity
 import com.masterhttprelay.vpn.data.repository.ProfileRepository
-import com.masterhttprelay.vpn.util.ConfigGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +21,6 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val gson = Gson()
-
     private val profileIdArg: Long? = savedStateHandle.get<String>("profileId")?.toLongOrNull()
 
     val selectedProfile: StateFlow<ProfileEntity?> = (
@@ -36,140 +34,98 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun exportConfigToml(profile: ProfileEntity, values: Map<String, String>): String {
-        val updated = buildUpdatedProfile(profile, values)
-        return ConfigGenerator.generateConfig(
-            profile = updated,
-            listenPort = updated.listenPort
-        )
-    }
-
-    fun importTomlValues(
-        tomlContent: String,
-        currentValues: Map<String, String>
-    ): Map<String, String> {
-        val result = currentValues.toMutableMap()
-        tomlContent.lineSequence().forEach { raw ->
-            val line = raw.substringBefore("#").trim()
-            if (line.isEmpty() || "=" !in line) return@forEach
-            val key = line.substringBefore("=").trim()
-            val valueRaw = line.substringAfter("=").trim()
-            if (key !in TOML_IMPORT_KEYS) return@forEach
-
-            val parsed = when {
-                key == "SCRIPT_IDS" -> valueRaw
-                    .removePrefix("[")
-                    .removeSuffix("]")
-                    .split(",")
-                    .map { it.trim().removeSurrounding("\"") }
-                    .filter { it.isNotBlank() }
-                    .joinToString(", ")
-                valueRaw.startsWith("\"") && valueRaw.endsWith("\"") ->
-                    valueRaw.removeSurrounding("\"")
-                else -> valueRaw
-            }
-            result[key] = parsed
-        }
-        return result
-    }
-
-    fun importResolvers(profile: ProfileEntity, resolversText: String) {
-        viewModelScope.launch {
-            profileRepository.updateProfile(profile.copy(resolvers = resolversText.trim()))
-        }
-    }
-
-    private fun parseAdvanced(json: String): Map<String, String> {
-        return try {
-            val type = object : TypeToken<Map<String, String>>() {}.type
-            gson.fromJson<Map<String, String>>(json, type) ?: emptyMap()
-        } catch (_: Exception) {
-            emptyMap()
-        }
-    }
-
-    private fun normalizeProtocol(value: String?, fallback: String): String {
-        val normalized = value?.trim()?.uppercase()
-        return when (normalized) {
-            "SOCKS5", "TCP" -> normalized
-            else -> fallback
-        }
-    }
-
-    private fun normalizeResolverBalancingStrategy(value: String?, fallback: Int): Int {
-        val parsed = value?.trim()?.toIntOrNull()
-        if (parsed != null && parsed in 1..8) return parsed
-        if (parsed == 0) return 2
-        return if (fallback in 1..8) fallback else 2
-    }
-
     private fun buildUpdatedProfile(profile: ProfileEntity, values: Map<String, String>): ProfileEntity {
-        val mergedAdvanced = parseAdvanced(profile.advancedJson).toMutableMap()
-        values.forEach { (key, value) ->
-            if (key in ADVANCED_SETTING_KEYS) {
-                mergedAdvanced[key] = value.trim()
-            }
-        }
+        val scriptIds = parseScriptIds(values["script_id"]).ifEmpty { parseDomains(profile.domains) }
+        val authKey = values["auth_key"]?.trim().orEmpty().ifBlank { profile.encryptionKey }
 
-        val mode = values["MODE"]?.trim().orEmpty()
-        if (mode.isNotEmpty()) {
-            mergedAdvanced["MODE"] = mode
-        }
+        val advanced = mapOf(
+            "mode" to (values["mode"]?.trim().takeUnless { it.isNullOrBlank() } ?: "apps_script"),
+            "google_ip" to (values["google_ip"]?.trim().takeUnless { it.isNullOrBlank() } ?: "216.239.38.120"),
+            "front_domain" to (values["front_domain"]?.trim().takeUnless { it.isNullOrBlank() } ?: "www.google.com"),
+            "listen_host" to (values["listen_host"]?.trim().takeUnless { it.isNullOrBlank() } ?: "127.0.0.1"),
+            "socks5_enabled" to normalizeBool(values["socks5_enabled"], true),
+            "socks5_port" to normalizeInt(values["socks5_port"], 1080),
+            "verify_ssl" to normalizeBool(values["verify_ssl"], true),
+            "lan_sharing" to normalizeBool(values["lan_sharing"], true),
+            "parallel_relay" to normalizeInt(values["parallel_relay"], 1),
+            "block_hosts" to normalizeMultiline(values["block_hosts"]),
+            "bypass_hosts" to normalizeMultiline(
+                values["bypass_hosts"],
+                defaultLines = listOf("localhost", ".local", ".lan", ".home.arpa")
+            ),
+            "direct_google_exclude" to normalizeMultiline(
+                values["direct_google_exclude"],
+                defaultLines = listOf(
+                    "gemini.google.com",
+                    "aistudio.google.com",
+                    "notebooklm.google.com",
+                    "labs.google.com",
+                    "meet.google.com",
+                    "accounts.google.com",
+                    "ogs.google.com",
+                    "mail.google.com",
+                    "calendar.google.com",
+                    "drive.google.com",
+                    "docs.google.com",
+                    "chat.google.com",
+                    "maps.google.com",
+                    "play.google.com",
+                    "translate.google.com",
+                    "assistant.google.com",
+                    "lens.google.com"
+                )
+            ),
+            "direct_google_allow" to normalizeMultiline(
+                values["direct_google_allow"],
+                defaultLines = listOf("www.google.com", "safebrowsing.google.com")
+            ),
+            "hosts" to normalizeMultiline(values["hosts"])
+        )
 
         return profile.copy(
-            domains = domainsToJson(values["SCRIPT_IDS"], profile.domains),
-            encryptionKey = values["AUTH_KEY"]?.trim().takeUnless { it.isNullOrBlank() }
-                ?: profile.encryptionKey,
-            listenPort = values["LISTEN_PORT"]?.toIntOrNull()
-                ?.coerceIn(1, 65535) ?: profile.listenPort,
-            logLevel = values["LOG_LEVEL"]?.trim().takeUnless { it.isNullOrBlank() }
-                ?: profile.logLevel,
-            advancedJson = gson.toJson(mergedAdvanced)
+            domains = gson.toJson(scriptIds),
+            encryptionKey = authKey,
+            listenPort = values["listen_port"]?.trim()?.toIntOrNull()?.coerceIn(1, 65535) ?: profile.listenPort,
+            logLevel = values["log_level"]?.trim().takeUnless { it.isNullOrBlank() }?.uppercase() ?: profile.logLevel,
+            advancedJson = gson.toJson(advanced)
         )
     }
 
+    private fun parseDomains(json: String): List<String> {
+        return try {
+            val type = object : TypeToken<List<String>>() {}.type
+            gson.fromJson<List<String>>(json, type)?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+        } catch (_: Exception) {
+            json.lineSequence().map { it.trim().removeSurrounding("\"") }.filter { it.isNotEmpty() }.toList()
+        }
+    }
 
-    private fun domainsToJson(value: String?, fallbackJson: String): String {
-        val domains = value
-            ?.split(",")
+    private fun parseScriptIds(raw: String?): List<String> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return raw
+            .lineSequence()
+            .flatMap { line -> line.split(',').asSequence() }
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .toList()
+    }
+
+    private fun normalizeBool(raw: String?, defaultValue: Boolean): String {
+        return raw?.trim()?.toBooleanStrictOrNull()?.toString() ?: defaultValue.toString()
+    }
+
+    private fun normalizeInt(raw: String?, defaultValue: Int): String {
+        return raw?.trim()?.toIntOrNull()?.toString() ?: defaultValue.toString()
+    }
+
+    private fun normalizeMultiline(raw: String?, defaultLines: List<String> = emptyList()): String {
+        val lines = raw
+            ?.lineSequence()
             ?.map { it.trim() }
             ?.filter { it.isNotEmpty() }
-            .orEmpty()
-
-        return if (domains.isEmpty()) fallbackJson else gson.toJson(domains)
-    }
-
-    companion object {
-        val TOML_IMPORT_KEYS = setOf(
-            "MODE",
-            "SCRIPT_IDS",
-            "AUTH_KEY",
-            "GOOGLE_IP",
-            "FRONT_DOMAIN",
-            "LISTEN_HOST",
-            "LISTEN_PORT",
-            "SOCKS5_PORT",
-            "LOG_LEVEL",
-            "VERIFY_SSL",
-            "HOSTS",
-            "ENABLE_BATCHING",
-            "UPSTREAM_SOCKS5",
-            "PARALLEL_RELAY",
-            "SNI_HOSTS"
-        )
-
-        val ADVANCED_SETTING_KEYS = setOf(
-            "MODE",
-            "GOOGLE_IP",
-            "FRONT_DOMAIN",
-            "LISTEN_HOST",
-            "SOCKS5_PORT",
-            "VERIFY_SSL",
-            "HOSTS",
-            "ENABLE_BATCHING",
-            "UPSTREAM_SOCKS5",
-            "PARALLEL_RELAY",
-            "SNI_HOSTS"
-        )
+            ?.toList()
+            ?.takeIf { it.isNotEmpty() }
+            ?: defaultLines
+        return lines.joinToString("\n")
     }
 }

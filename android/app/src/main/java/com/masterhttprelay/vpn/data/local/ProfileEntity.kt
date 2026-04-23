@@ -12,8 +12,6 @@ data class ProfileEntity(
     val encryptionKey: String = "",
     val protocolType: String = "SOCKS5",  // SOCKS5 or TCP
     val listenPort: Int = 18000,
-    val resolvers: String = "",       // newline-separated list
-    val resolverBalancingStrategy: Int = 2,
     val packetDuplicationCount: Int = 2,
     val setupPacketDuplicationCount: Int = 2,
     val uploadCompression: Int = 0,
