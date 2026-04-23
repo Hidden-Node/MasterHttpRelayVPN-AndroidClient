@@ -22,7 +22,7 @@ if _SRC_DIR not in sys.path:
 
 from proxy_server import ProxyServer
 from logging_utils import configure as configure_logging
-from mitm import generate_ca
+import mitm
 
 
 class VpnCore:
@@ -92,11 +92,16 @@ class VpnCore:
                 os.makedirs(ca_dir, exist_ok=True)
                 ca_cert_path = os.path.join(ca_dir, "ca.crt")
                 ca_key_path = os.path.join(ca_dir, "ca.key")
-                
-                # Generate CA if not exists
+
+                # Point MITM module to Android app-private CA directory.
+                mitm.CA_DIR = ca_dir
+                mitm.CA_CERT_FILE = ca_cert_path
+                mitm.CA_KEY_FILE = ca_key_path
+
+                # Generate CA if not exists (via MITM manager).
                 if not os.path.exists(ca_cert_path) or not os.path.exists(ca_key_path):
                     self._log(2, "Generating CA certificate...")
-                    generate_ca(ca_cert_path, ca_key_path)
+                    mitm.MITMCertManager()
                     self._log(2, f"CA certificate generated at {ca_cert_path}")
                 
                 # Override CA paths in environment
@@ -254,6 +259,11 @@ def ensure_ca(ca_dir: str) -> str:
     os.makedirs(ca_dir, exist_ok=True)
     ca_cert_path = os.path.join(ca_dir, "ca.crt")
     ca_key_path = os.path.join(ca_dir, "ca.key")
+
+    mitm.CA_DIR = ca_dir
+    mitm.CA_CERT_FILE = ca_cert_path
+    mitm.CA_KEY_FILE = ca_key_path
+
     if not os.path.exists(ca_cert_path) or not os.path.exists(ca_key_path):
-        generate_ca(ca_cert_path, ca_key_path)
+        mitm.MITMCertManager()
     return ca_cert_path
