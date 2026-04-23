@@ -17,7 +17,7 @@ object PythonBridge {
 
         // Start Python
         if (!Python.isStarted()) {
-            AndroidPlatform.start(context)
+            Python.start(AndroidPlatform(context))
         }
 
         val py = Python.getInstance()

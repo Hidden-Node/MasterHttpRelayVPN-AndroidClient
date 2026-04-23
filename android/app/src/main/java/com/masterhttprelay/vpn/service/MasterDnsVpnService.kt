@@ -13,7 +13,7 @@ import com.masterhttprelay.vpn.App
 import com.masterhttprelay.vpn.MainActivity
 import com.masterhttprelay.vpn.R
 import com.masterhttprelay.vpn.bridge.PythonBridge
-import com.masterhttprelay.vpn.bridge.PythonBridgeCallback
+import com.masterhttprelay.vpn.bridge.RustBridgeCallback
 import com.masterhttprelay.vpn.data.local.AppDatabase
 import com.masterhttprelay.vpn.util.ConfigGenerator
 import com.masterhttprelay.vpn.util.GlobalSettingsStore
