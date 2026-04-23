@@ -77,8 +77,14 @@ class MasterDnsVpnService : VpnService() {
 
     override fun onCreate() {
         super.onCreate()
-        PythonBridge.init(applicationContext, BridgeCallback())
-        VpnManager.appendLog("Python bridge loaded: ${PythonBridge.version()}")
+        runCatching {
+            PythonBridge.init(applicationContext, BridgeCallback())
+            VpnManager.appendLog("Python bridge loaded: ${PythonBridge.version()}")
+        }.onFailure { e ->
+            Log.e(TAG, "Failed to initialize Python bridge", e)
+            VpnManager.setError("Python bridge init failed: ${e.message}")
+            VpnManager.appendLog("Python bridge init failed: ${e.message}")
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -117,7 +123,7 @@ class MasterDnsVpnService : VpnService() {
                 VpnManager.appendLog("Starting Python core for profile: ${profile.name}")
 
                 if (!PythonBridge.start(applicationContext, configJson)) {
-                    throw IllegalStateException("Rust core failed to start")
+                    throw IllegalStateException("Python core failed to start")
                 }
 
                 var waited = 0L
@@ -126,7 +132,7 @@ class MasterDnsVpnService : VpnService() {
                     waited += 200
                 }
                 if (!PythonBridge.isRunning()) {
-                    throw IllegalStateException("Rust core startup timeout")
+                    throw IllegalStateException("Python core startup timeout")
                 }
 
                 val builder = Builder()
