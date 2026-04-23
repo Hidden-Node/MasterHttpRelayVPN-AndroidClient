@@ -9,10 +9,10 @@ import java.io.File
 object PythonBridge {
     private var initialized = false
     private var vpnCoreModule: PyObject? = null
-    private var callback: RustBridgeCallback? = null
+    private var callback: VpnCoreCallback? = null
 
     @Synchronized
-    fun init(context: Context, callback: RustBridgeCallback) {
+    fun init(context: Context, callback: VpnCoreCallback) {
         if (initialized) return
 
         // Start Python

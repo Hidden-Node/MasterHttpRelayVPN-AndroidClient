@@ -13,7 +13,7 @@ import com.masterhttprelay.vpn.App
 import com.masterhttprelay.vpn.MainActivity
 import com.masterhttprelay.vpn.R
 import com.masterhttprelay.vpn.bridge.PythonBridge
-import com.masterhttprelay.vpn.bridge.RustBridgeCallback
+import com.masterhttprelay.vpn.bridge.VpnCoreCallback
 import com.masterhttprelay.vpn.data.local.AppDatabase
 import com.masterhttprelay.vpn.util.ConfigGenerator
 import com.masterhttprelay.vpn.util.GlobalSettingsStore
@@ -265,7 +265,7 @@ class MasterDnsVpnService : VpnService() {
         }
     }
 
-    private inner class BridgeCallback : RustBridgeCallback {
+    private inner class BridgeCallback : VpnCoreCallback {
         override fun onStateChanged(state: Int, message: String?) {
             when (state) {
                 1 -> VpnManager.updateState(VpnManager.VpnState.CONNECTING)
