@@ -4,6 +4,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
+    id("com.chaquo.python")
 }
 
 android {
@@ -25,6 +26,16 @@ android {
         versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        python {
+            buildPython("/usr/bin/python3")
+            pip {
+                install("cryptography>=41.0.0")
+                install("h2>=4.1.0")
+                install("brotli>=1.1.0")
+                install("zstandard>=0.22.0")
+            }
+        }
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
@@ -99,20 +110,14 @@ android {
     }
 }
 
-tasks.register<Exec>("buildRustJniBridge") {
-    group = "rust"
-    description = "Build JNI bridge shared libraries for Android ABIs"
-    commandLine = listOf("bash", "${projectDir}/scripts/build_rust_bridge.sh")
-}
-
 tasks.register<Exec>("buildTun2Socks") {
-    group = "rust"
+    group = "go"
     description = "Build tun2socks bridge library"
     commandLine = listOf("bash", "${projectDir}/scripts/build_tun2socks.sh")
 }
 
 tasks.named("preBuild") {
-    dependsOn("buildRustJniBridge", "buildTun2Socks")
+    dependsOn("buildTun2Socks")
 }
 
 dependencies {

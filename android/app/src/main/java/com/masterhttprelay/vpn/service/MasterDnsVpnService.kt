@@ -12,8 +12,8 @@ import androidx.core.app.NotificationCompat
 import com.masterhttprelay.vpn.App
 import com.masterhttprelay.vpn.MainActivity
 import com.masterhttprelay.vpn.R
-import com.masterhttprelay.vpn.bridge.RustBridge
-import com.masterhttprelay.vpn.bridge.RustBridgeCallback
+import com.masterhttprelay.vpn.bridge.PythonBridge
+import com.masterhttprelay.vpn.bridge.PythonBridgeCallback
 import com.masterhttprelay.vpn.data.local.AppDatabase
 import com.masterhttprelay.vpn.util.ConfigGenerator
 import com.masterhttprelay.vpn.util.GlobalSettingsStore
@@ -77,8 +77,8 @@ class MasterDnsVpnService : VpnService() {
 
     override fun onCreate() {
         super.onCreate()
-        RustBridge.init(BridgeCallback())
-        VpnManager.appendLog("Rust JNI bridge loaded: ${RustBridge.version()}")
+        PythonBridge.init(applicationContext, BridgeCallback())
+        VpnManager.appendLog("Python bridge loaded: ${PythonBridge.version()}")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -114,18 +114,18 @@ class MasterDnsVpnService : VpnService() {
                 val httpPort = DEFAULT_HTTP_PORT
 
                 val configJson = ConfigGenerator.generateRustConfig(profile, httpPort = httpPort, socksPort = socksPort)
-                VpnManager.appendLog("Starting Rust core for profile: ${profile.name}")
+                VpnManager.appendLog("Starting Python core for profile: ${profile.name}")
 
-                if (!RustBridge.start(configJson)) {
+                if (!PythonBridge.start(applicationContext, configJson)) {
                     throw IllegalStateException("Rust core failed to start")
                 }
 
                 var waited = 0L
-                while (!RustBridge.isRunning() && waited < BRIDGE_START_TIMEOUT_MS) {
+                while (!PythonBridge.isRunning() && waited < BRIDGE_START_TIMEOUT_MS) {
                     delay(200)
                     waited += 200
                 }
-                if (!RustBridge.isRunning()) {
+                if (!PythonBridge.isRunning()) {
                     throw IllegalStateException("Rust core startup timeout")
                 }
 
@@ -192,7 +192,7 @@ class MasterDnsVpnService : VpnService() {
                 tun2SocksManager.stop()
                 vpnInterface?.close()
                 vpnInterface = null
-                RustBridge.stop()
+                PythonBridge.stop()
                 VpnManager.stopTrafficMonitor()
                 releaseWakeLock()
                 VpnManager.updateState(VpnManager.VpnState.DISCONNECTED)
@@ -216,7 +216,7 @@ class MasterDnsVpnService : VpnService() {
         super.onDestroy()
         connectJob?.cancel()
         tun2SocksManager.stop()
-        RustBridge.stop()
+        PythonBridge.stop()
         releaseWakeLock()
     }
 
