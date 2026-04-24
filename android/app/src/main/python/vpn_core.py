@@ -25,6 +25,28 @@ from logging_utils import configure as configure_logging
 import mitm
 
 
+class _CallbackLogHandler(logging.Handler):
+    """Forward Python logger records to Android callback."""
+
+    def __init__(self, core):
+        super().__init__()
+        self._core = core
+
+    def emit(self, record):
+        try:
+            if record.levelno >= logging.ERROR:
+                level = 4
+            elif record.levelno >= logging.WARNING:
+                level = 3
+            elif record.levelno <= logging.DEBUG:
+                level = 1
+            else:
+                level = 2
+            self._core._log(level, self.format(record))
+        except Exception:
+            pass
+
+
 class VpnCore:
     """Main VPN core controller for Android integration."""
     
@@ -35,10 +57,23 @@ class VpnCore:
         self.running = False
         self.callback: Optional[Any] = None
         self._lock = threading.Lock()
+        self._callback_log_handler: Optional[logging.Handler] = None
         
     def set_callback(self, callback: Any):
         """Set callback for state changes and logs."""
         self.callback = callback
+        self._attach_log_forwarder()
+
+    def _attach_log_forwarder(self):
+        if self._callback_log_handler is not None:
+            return
+        handler = _CallbackLogHandler(self)
+        handler.setLevel(logging.DEBUG)
+        handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
+        root = logging.getLogger()
+        root.setLevel(logging.DEBUG)
+        root.addHandler(handler)
+        self._callback_log_handler = handler
         
     def _log(self, level: int, message: str):
         """Send log to callback if available."""
