@@ -146,6 +146,10 @@ class MasterDnsVpnService : VpnService() {
                 if (!proxyMode) {
                     builder.addRoute("0.0.0.0", 0)
                     builder.addRoute("::", 0)
+                    // Keep the app process (Python core + relay client) off the TUN path.
+                    // Otherwise upstream relay traffic can loop back into tun2socks.
+                    runCatching { builder.addDisallowedApplication(packageName) }
+                        .onFailure { VpnManager.appendLog("Disallow self-app failed: ${it.message}") }
 
                     val splitEnabled = global.splitTunnelingEnabled && global.splitPackagesCsv.isNotBlank()
                     if (splitEnabled) {
