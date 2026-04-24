@@ -7,6 +7,7 @@ import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.os.PowerManager
+import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.masterhttprelay.vpn.App
@@ -115,6 +116,7 @@ class MasterDnsVpnService : VpnService() {
                 val profile = db.profileDao().getProfileById(profileId)
                     ?: throw IllegalStateException("Profile not found")
                 val global = GlobalSettingsStore.load(this@MasterDnsVpnService)
+                logPrivateDnsState()
 
                 val socksPort = DEFAULT_SOCKS_PORT
                 val httpPort = DEFAULT_HTTP_PORT
@@ -144,6 +146,7 @@ class MasterDnsVpnService : VpnService() {
 
                 val proxyMode = global.connectionMode.equals("PROXY", ignoreCase = true)
                 if (!proxyMode) {
+                    VpnManager.appendLog("Connection mode: VPN (tun2socks enabled)")
                     builder.addRoute("0.0.0.0", 0)
                     builder.addRoute("::", 0)
                     // Keep the app process (Python core + relay client) off the TUN path.
@@ -178,6 +181,11 @@ class MasterDnsVpnService : VpnService() {
                     if (!tun2SocksManager.start(vpnInterface!!, socksAddr, 1500)) {
                         throw IllegalStateException("tun2socks failed to start")
                     }
+                    VpnManager.appendLog("tun2socks started with SOCKS endpoint $socksAddr")
+                } else {
+                    VpnManager.appendLog(
+                        "Connection mode: PROXY (device-wide VPN routing is disabled; only proxy-aware traffic will pass)"
+                    )
                 }
 
                 VpnManager.updateState(VpnManager.VpnState.CONNECTED)
@@ -264,6 +272,20 @@ class MasterDnsVpnService : VpnService() {
             }
         }
         wakeLock = null
+    }
+
+    private fun logPrivateDnsState() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
+        runCatching {
+            val mode = Settings.Global.getString(contentResolver, "private_dns_mode") ?: "unknown"
+            val specifier = Settings.Global.getString(contentResolver, "private_dns_specifier").orEmpty()
+            if (mode.equals("hostname", ignoreCase = true)) {
+                val target = if (specifier.isBlank()) "(unspecified)" else specifier
+                VpnManager.appendLog(
+                    "Private DNS is STRICT ($target). For full app compatibility, disable Private DNS or set it to Automatic."
+                )
+            }
+        }
     }
 
     @Suppress("DEPRECATION")
