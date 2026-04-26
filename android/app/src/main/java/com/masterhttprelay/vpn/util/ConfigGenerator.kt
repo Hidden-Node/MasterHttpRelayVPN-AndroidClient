@@ -62,7 +62,54 @@ object ConfigGenerator {
             addProperty("log_level", profile.logLevel.ifBlank { "INFO" }.uppercase())
             addProperty("verify_ssl", (advanced["verify_ssl"] ?: "true").toBooleanStrictOrNull() ?: true)
             addProperty("lan_sharing", (advanced["lan_sharing"] ?: "true").toBooleanStrictOrNull() ?: true)
+            addProperty("relay_timeout", (advanced["relay_timeout"] ?: "25").toIntOrNull() ?: 25)
+            addProperty("tls_connect_timeout", (advanced["tls_connect_timeout"] ?: "15").toIntOrNull() ?: 15)
+            addProperty("tcp_connect_timeout", (advanced["tcp_connect_timeout"] ?: "10").toIntOrNull() ?: 10)
+            addProperty("max_response_body_bytes", (advanced["max_response_body_bytes"] ?: "209715200").toLongOrNull() ?: 209715200L)
             addProperty("parallel_relay", (advanced["parallel_relay"] ?: "1").toIntOrNull() ?: 1)
+            add(
+                "chunked_download_extensions",
+                parseArrayLines(
+                    advanced["chunked_download_extensions"],
+                    default = listOf(
+                        ".bin",
+                        ".zip",
+                        ".tar",
+                        ".gz",
+                        ".bz2",
+                        ".xz",
+                        ".7z",
+                        ".rar",
+                        ".exe",
+                        ".msi",
+                        ".dmg",
+                        ".deb",
+                        ".rpm",
+                        ".apk",
+                        ".iso",
+                        ".img",
+                        ".mp4",
+                        ".mkv",
+                        ".avi",
+                        ".mov",
+                        ".webm",
+                        ".mp3",
+                        ".flac",
+                        ".wav",
+                        ".aac",
+                        ".pdf",
+                        ".doc",
+                        ".docx",
+                        ".ppt",
+                        ".pptx",
+                        ".wasm"
+                    )
+                )
+            )
+            addProperty("chunked_download_min_size", (advanced["chunked_download_min_size"] ?: "5242880").toLongOrNull() ?: 5242880L)
+            addProperty("chunked_download_chunk_size", (advanced["chunked_download_chunk_size"] ?: "524288").toLongOrNull() ?: 524288L)
+            addProperty("chunked_download_max_parallel", (advanced["chunked_download_max_parallel"] ?: "8").toIntOrNull() ?: 8)
+            addProperty("chunked_download_max_chunks", (advanced["chunked_download_max_chunks"] ?: "256").toIntOrNull() ?: 256)
 
             add("block_hosts", parseArrayLines(advanced["block_hosts"]))
             add(
@@ -98,6 +145,7 @@ object ConfigGenerator {
                 "direct_google_allow",
                 parseArrayLines(advanced["direct_google_allow"], default = listOf("www.google.com", "safebrowsing.google.com"))
             )
+            addProperty("youtube_via_relay", (advanced["youtube_via_relay"] ?: "false").toBooleanStrictOrNull() ?: false)
             add("hosts", parseHostsObject(advanced["hosts"]))
         }
 

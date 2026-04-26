@@ -47,7 +47,51 @@ class SettingsViewModel @Inject constructor(
             "socks5_port" to normalizeInt(values["socks5_port"], 1080),
             "verify_ssl" to normalizeBool(values["verify_ssl"], true),
             "lan_sharing" to normalizeBool(values["lan_sharing"], true),
+            "relay_timeout" to normalizeInt(values["relay_timeout"], 25),
+            "tls_connect_timeout" to normalizeInt(values["tls_connect_timeout"], 15),
+            "tcp_connect_timeout" to normalizeInt(values["tcp_connect_timeout"], 10),
+            "max_response_body_bytes" to normalizeLong(values["max_response_body_bytes"], 209715200),
             "parallel_relay" to normalizeInt(values["parallel_relay"], 1),
+            "chunked_download_extensions" to normalizeMultiline(
+                values["chunked_download_extensions"],
+                defaultLines = listOf(
+                    ".bin",
+                    ".zip",
+                    ".tar",
+                    ".gz",
+                    ".bz2",
+                    ".xz",
+                    ".7z",
+                    ".rar",
+                    ".exe",
+                    ".msi",
+                    ".dmg",
+                    ".deb",
+                    ".rpm",
+                    ".apk",
+                    ".iso",
+                    ".img",
+                    ".mp4",
+                    ".mkv",
+                    ".avi",
+                    ".mov",
+                    ".webm",
+                    ".mp3",
+                    ".flac",
+                    ".wav",
+                    ".aac",
+                    ".pdf",
+                    ".doc",
+                    ".docx",
+                    ".ppt",
+                    ".pptx",
+                    ".wasm"
+                )
+            ),
+            "chunked_download_min_size" to normalizeLong(values["chunked_download_min_size"], 5242880),
+            "chunked_download_chunk_size" to normalizeLong(values["chunked_download_chunk_size"], 524288),
+            "chunked_download_max_parallel" to normalizeInt(values["chunked_download_max_parallel"], 8),
+            "chunked_download_max_chunks" to normalizeInt(values["chunked_download_max_chunks"], 256),
             "block_hosts" to normalizeMultiline(values["block_hosts"]),
             "bypass_hosts" to normalizeMultiline(
                 values["bypass_hosts"],
@@ -79,6 +123,7 @@ class SettingsViewModel @Inject constructor(
                 values["direct_google_allow"],
                 defaultLines = listOf("www.google.com", "safebrowsing.google.com")
             ),
+            "youtube_via_relay" to normalizeBool(values["youtube_via_relay"], false),
             "hosts" to normalizeMultiline(values["hosts"])
         )
 
@@ -116,6 +161,10 @@ class SettingsViewModel @Inject constructor(
 
     private fun normalizeInt(raw: String?, defaultValue: Int): String {
         return raw?.trim()?.toIntOrNull()?.toString() ?: defaultValue.toString()
+    }
+
+    private fun normalizeLong(raw: String?, defaultValue: Long): String {
+        return raw?.trim()?.toLongOrNull()?.toString() ?: defaultValue.toString()
     }
 
     private fun normalizeMultiline(raw: String?, defaultLines: List<String> = emptyList()): String {

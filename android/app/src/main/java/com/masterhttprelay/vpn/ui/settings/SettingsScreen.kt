@@ -90,11 +90,21 @@ private val configFields = listOf(
     SettingField("Network", "log_level", "log_level", "INFO", type = FieldType.OPTION, options = listOf("INFO", "DEBUG", "WARNING", "ERROR")),
     SettingField("Network", "verify_ssl", "verify_ssl", "true/false", type = FieldType.BOOL),
     SettingField("Network", "lan_sharing", "lan_sharing", "true/false", type = FieldType.BOOL),
+    SettingField("Timeouts", "relay_timeout", "relay_timeout", "Default: 25", keyboardType = KeyboardType.Number),
+    SettingField("Timeouts", "tls_connect_timeout", "tls_connect_timeout", "Default: 15", keyboardType = KeyboardType.Number),
+    SettingField("Timeouts", "tcp_connect_timeout", "tcp_connect_timeout", "Default: 10", keyboardType = KeyboardType.Number),
+    SettingField("Limits", "max_response_body_bytes", "max_response_body_bytes", "Default: 209715200", keyboardType = KeyboardType.Number),
     SettingField("Routing", "parallel_relay", "parallel_relay", "Default: 1", keyboardType = KeyboardType.Number),
+    SettingField("Downloads", "chunked_download_extensions", "chunked_download_extensions", "One extension per line", minLines = 8),
+    SettingField("Downloads", "chunked_download_min_size", "chunked_download_min_size", "Default: 5242880", keyboardType = KeyboardType.Number),
+    SettingField("Downloads", "chunked_download_chunk_size", "chunked_download_chunk_size", "Default: 524288", keyboardType = KeyboardType.Number),
+    SettingField("Downloads", "chunked_download_max_parallel", "chunked_download_max_parallel", "Default: 8", keyboardType = KeyboardType.Number),
+    SettingField("Downloads", "chunked_download_max_chunks", "chunked_download_max_chunks", "Default: 256", keyboardType = KeyboardType.Number),
     SettingField("Routing", "block_hosts", "block_hosts", "One host per line", minLines = 3),
     SettingField("Routing", "bypass_hosts", "bypass_hosts", "One host per line", minLines = 4),
     SettingField("Routing", "direct_google_exclude", "direct_google_exclude", "One host per line", minLines = 6),
     SettingField("Routing", "direct_google_allow", "direct_google_allow", "One host per line", minLines = 2),
+    SettingField("Routing", "youtube_via_relay", "youtube_via_relay", "true/false", type = FieldType.BOOL),
     SettingField("Routing", "hosts", "hosts", "host=ip per line", minLines = 3)
 )
 
@@ -357,7 +367,22 @@ private fun defaultValuesFor(profile: ProfileEntity): Map<String, String> {
         put("log_level", profile.logLevel.ifBlank { "INFO" }.uppercase())
         put("verify_ssl", adv("verify_ssl", "true"))
         put("lan_sharing", adv("lan_sharing", "true"))
+        put("relay_timeout", adv("relay_timeout", "25"))
+        put("tls_connect_timeout", adv("tls_connect_timeout", "15"))
+        put("tcp_connect_timeout", adv("tcp_connect_timeout", "10"))
+        put("max_response_body_bytes", adv("max_response_body_bytes", "209715200"))
         put("parallel_relay", adv("parallel_relay", "1"))
+        put(
+            "chunked_download_extensions",
+            adv(
+                "chunked_download_extensions",
+                ".bin\n.zip\n.tar\n.gz\n.bz2\n.xz\n.7z\n.rar\n.exe\n.msi\n.dmg\n.deb\n.rpm\n.apk\n.iso\n.img\n.mp4\n.mkv\n.avi\n.mov\n.webm\n.mp3\n.flac\n.wav\n.aac\n.pdf\n.doc\n.docx\n.ppt\n.pptx\n.wasm"
+            )
+        )
+        put("chunked_download_min_size", adv("chunked_download_min_size", "5242880"))
+        put("chunked_download_chunk_size", adv("chunked_download_chunk_size", "524288"))
+        put("chunked_download_max_parallel", adv("chunked_download_max_parallel", "8"))
+        put("chunked_download_max_chunks", adv("chunked_download_max_chunks", "256"))
         put("block_hosts", adv("block_hosts", ""))
         put("bypass_hosts", adv("bypass_hosts", "localhost\n.local\n.lan\n.home.arpa"))
         put(
@@ -368,6 +393,7 @@ private fun defaultValuesFor(profile: ProfileEntity): Map<String, String> {
             )
         )
         put("direct_google_allow", adv("direct_google_allow", "www.google.com\nsafebrowsing.google.com"))
+        put("youtube_via_relay", adv("youtube_via_relay", "false"))
         put("hosts", adv("hosts", ""))
     }
 }
